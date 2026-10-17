@@ -19,19 +19,21 @@
 	color: #e53e3e;
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
+	line-height: 1.2;
 }
 
 /* Strict SVG sizing rule */
 .mppw-countdown-wrapper svg,
 .mppw-countdown-header svg,
-.mppw-loop-icon {
+.mppw-countdown-wrapper img,
+.mppw-countdown-header img {
 	width: 14px !important;
 	height: 14px !important;
 	max-width: 14px !important;
 	max-height: 14px !important;
 	display: inline-block !important;
 	vertical-align: middle !important;
-	margin-right: 4px;
+	margin-right: 5px !important;
 	fill: currentColor;
 	flex-shrink: 0;
 }
@@ -84,87 +86,84 @@
    ========================================================================== */
 
 .mppw-countdown-wrapper.mppw-timer-loop {
-	display: inline-flex !important;
-	align-items: center !important;
-	justify-content: center !important;
-	flex-direction: row !important;
-	white-space: nowrap !important;
+	display: inline-block !important;
 	margin: 6px auto 8px auto !important;
-	padding: 4px 8px !important;
+	padding: 6px 8px !important;
 	background: #fff5f5 !important;
 	border: 1px solid #fed7d7 !important;
-	border-radius: 4px !important;
+	border-radius: 6px !important;
 	box-shadow: none !important;
 	box-sizing: border-box !important;
 	max-width: 100% !important;
-	line-height: 1.2 !important;
 	text-align: center;
 }
 
-.mppw-countdown-wrapper.mppw-timer-loop .mppw-loop-badge-content {
-	display: inline-flex !important;
+.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-header {
+	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
-	flex-direction: row !important;
-	gap: 4px !important;
-	white-space: nowrap !important;
+	margin-bottom: 5px !important;
 	font-size: 11px !important;
-	font-weight: 600 !important;
-	color: #c53030 !important;
+	font-weight: 700 !important;
+	color: #e53e3e !important;
+	letter-spacing: 0.3px !important;
+	line-height: 1.2 !important;
+	text-transform: uppercase !important;
+	white-space: normal !important;
 }
 
-.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-title {
-	font-size: 11px !important;
-	font-weight: 600 !important;
-	color: #c53030 !important;
-	margin-right: 2px !important;
-	text-transform: none !important;
-	letter-spacing: 0 !important;
+.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-header svg {
+	width: 14px !important;
+	height: 14px !important;
+	max-width: 14px !important;
+	max-height: 14px !important;
+	display: inline-block !important;
+	vertical-align: middle !important;
+	margin-right: 5px !important;
+	flex-shrink: 0 !important;
 }
 
 .mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-timer {
-	display: inline-flex !important;
+	display: flex !important;
 	align-items: center !important;
 	justify-content: center !important;
-	flex-direction: row !important;
-	gap: 2px !important;
-	white-space: nowrap !important;
+	gap: 4px !important;
 }
 
 .mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-item {
-	display: inline-flex !important;
-	flex-direction: row !important;
-	align-items: baseline !important;
+	display: flex !important;
+	flex-direction: column !important;
+	align-items: center !important;
 	justify-content: center !important;
-	min-width: 0 !important;
-	padding: 0 !important;
-	background: transparent !important;
-	border: none !important;
+	min-width: 28px !important;
+	padding: 2px 4px !important;
+	background: #ffffff !important;
+	border: 1px solid #fed7d7 !important;
+	border-radius: 4px !important;
 	box-shadow: none !important;
 }
 
 .mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-num {
 	font-size: 12px !important;
 	font-weight: 700 !important;
-	line-height: 1 !important;
-	color: #9b2c2c !important;
+	line-height: 1.1 !important;
+	color: #c53030 !important;
 	font-variant-numeric: tabular-nums !important;
 }
 
 .mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-label {
-	font-size: 10px !important;
+	font-size: 8px !important;
 	font-weight: 600 !important;
-	color: #c53030 !important;
-	margin-top: 0 !important;
-	margin-left: 1px !important;
-	text-transform: lowercase !important;
+	color: #9b2c2c !important;
+	margin-top: 1px !important;
+	text-transform: uppercase !important;
 }
 
 .mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-sep {
 	font-size: 11px !important;
 	font-weight: 700 !important;
 	color: #e53e3e !important;
-	margin: 0 !important;
+	margin-top: -3px !important;
 	line-height: 1 !important;
 }
 
@@ -193,13 +192,17 @@
 	}
 
 	.mppw-countdown-wrapper.mppw-timer-loop {
-		padding: 3px 6px !important;
+		padding: 4px 6px !important;
 		margin: 4px auto 6px auto !important;
 	}
 
-	.mppw-countdown-wrapper.mppw-timer-loop .mppw-loop-badge-content,
-	.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-title {
+	.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-header {
 		font-size: 10px !important;
+	}
+
+	.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-item {
+		min-width: 24px !important;
+		padding: 2px 3px !important;
 	}
 
 	.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-num {
@@ -207,6 +210,6 @@
 	}
 
 	.mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-label {
-		font-size: 9px !important;
+		font-size: 8px !important;
 	}
 }
