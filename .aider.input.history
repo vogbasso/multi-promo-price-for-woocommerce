@@ -133,3 +133,114 @@
 +
 +3. Compatibilité :
 +   - Assurer le bon fonctionnement sur les produits simples et les variations.
+
+# 2026-10-17 14:40:56.789492
++Effectue un audit de sécurité complet du fichier multi-promo-price-for-woocommerce.php selon les standards WordPress VIP et WooCommerce.
++
++Vérifie et applique impérativement :
++1. Protection d'accès direct au début du fichier (defined('ABSPATH') || exit;).
++2. Vérification des permissions utilisateur (current_user_can('edit_product', $post_id) ou 'edit_post') avant toute sauvegarde.
++3. Vérification des nonces de sécurité lors de la sauvegarde des produits simples et des variations.
++4. Nettoyage strict (Sanitization) : wc_format_decimal() pour les prix, sanitize_text_field() pour les dates.
++5. Échappement strict (Escaping) sur toutes les sorties HTML/JS (esc_html, esc_attr, wp_json_encode).
++6. Vérification qu'aucun hook AJAX ou endpoint REST non sécurisé n'est exposé.
++
++Si des failles ou des oublis sont détectés, corrige-les directement dans le code.
+
+# 2026-10-17 15:52:02.137317
++/exit
+
+# 2026-10-17 18:08:36.794669
++n
+
+# 2026-10-17 18:08:59.418965
++Ajoute l'affichage du compte à rebours sur les pages catégories et archives (Shop Loop) dans multi-promo-price-for-woocommerce.php :
++
++1. Hook d'affichage boucle WooCommerce :
++   - Accrocher le compte à rebours sur 'woocommerce_after_shop_loop_item_title' (priorité 15, juste après le prix) pour les cartes produits des grilles (catégories, boutique, résultats de recherche).
++   - Utiliser la même logique en cascade déjà en place :
++     * Priorité 1 : Super promo flash active avec date de fin.
++     * Priorité 2 (fallback) : Promo WooCommerce normale avec date de fin planifiée.
++     * Si aucune date de fin : ne rien afficher.
++
++2. Gestion multi-chronos en JavaScript :
++   - S'assurer que le script JS Vanilla gère parfaitement plusieurs compteurs simultanés sur la même page (utilisation de querySelectorAll sur les éléments .mppw-countdown-timer).
++   - Optimisation des performances : un seul setInterval global qui met à jour l'ensemble des compteurs visibles.
++
++3. Design compact pour les cartes produits :
++   - Ajouter une classe CSS spécifique (ex: .mppw-timer-loop ou .mppw-timer-compact) pour les cartes produits.
++   - Design épuré, compact et responsive adapté aux grilles (police plus petite, espacements réduits, s'adapte bien sur mobile).
+
+# 2026-10-17 18:09:08.714169
++y
+
+# 2026-10-17 18:15:37.176733
++Corrige le problème d'affichage du compte à rebours sur la page d'accueil et le thème Flatsome dans multi-promo-price-for-woocommerce.php :
++
++1. Chargement des styles et scripts CSS/JS :
++   - S'assurer que le fichier CSS et JS du plugin soit chargé sur TOUTES les pages front-end où un produit peut apparaître (notamment is_front_page(), is_home(), is_shop(), is_product_taxonomy(), is_page()). Actuellement, le CSS ne se chargeait pas sur la page d'accueil UX Builder de Flatsome.
++
++2. Correction stricte du design en grille (Shop loop / Slider Flatsome) :
++   - Verrouiller impérativement la taille de l'icône SVG/horloge : max-width: 14px !important; max-height: 14px !important; width: 14px !important; height: 14px !important; display: inline-block; vertical-align: middle;
++   - Pour les cartes produits (loop / page d'accueil / catégories) :
++     * Masquer ou raccourcir le long texte "Offre promotionnelle se termine dans :" pour ne laisser que le chrono ou un très court "Fin dans :".
++     * Afficher impérativement le timer sur UNE SEULE LIGNE HORIZONTALE avec flexbox :
++       display: inline-flex !important;
++       align-items: center !important;
++       justify-content: center !important;
++       gap: 4px !important;
++       flex-direction: row !important;
++       white-space: nowrap !important;
++     * Donner un style "Badge promotionnel" compact et élégant (petite bordure, fond léger, police de 11px/12px) pour ne pas désaligner les boutons "Ajouter au panier" de Flatsome.
+
+# 2026-10-17 18:20:17.679425
++Corrige immédiatement l'icône d'horloge géante dans multi-promo-price-for-woocommerce.php :
++
++1. Problème identifié :
++   - Un élément <svg> ou <img> d'horloge prend 100% de la largeur du conteneur à cause du CSS global de Flatsome.
++
++2. Correction stricte dans le HTML / PHP :
++   - Trouve le tag <svg> ou <img> de l'horloge.
++   - Ajoute un style inline directement sur la balise :
++     style="width: 14px !important; height: 14px !important; max-width: 14px !important; max-height: 14px !important; display: inline-block !important; vertical-align: middle !important; margin-right: 5px !important;"
++   - Place cette icône sur la MÊME LIGNE que le texte "OFFRE PROMOTIONNELLE SE TERMINE DANS :" (à l'intérieur du même <span> ou <div> d'en-tête), exactement comme dans la version initiale.
++
++3. Rétablir le texte d'en-tête :
++   - Remets le texte : "OFFRE PROMOTIONNELLE SE TERMINE DANS :" en rouge au-dessus des chiffres, avec la petite horloge de 14px à sa gauche.
++   - Ne laisse aucun SVG en dehors de cette ligne d'en-tête.
+
+# 2026-10-17 18:23:43.990449
++Harmonise le style du compte à rebours sur la fiche produit individuelle dans multi-promo-price-for-woocommerce.php :
++
++1. Remplacer le style bleu/gris neutre de la page produit par le style rouge promotionnel :
++   - Fond du conteneur : rouge très clair / rosé (#fff5f5).
++   - Bordure du conteneur : bordure rouge légère (#ffd2d2).
++   - Titre "OFFRE PROMOTIONNELLE SE TERMINE DANS :" et petite icône horloge : rouge promotionnel vif (#d32f2f ou #e53935).
++   - Boîtes des chiffres (Jours, Heures, Min, Sec) :
++     * Bordure : rouge claire (#ffcccc).
++     * Chiffres : rouge vif (#d32f2f) en gras.
++     * Deux-points ":" séparateurs : rouge (#d32f2f).
++   - Labels sous les chiffres (JOURS, HEURES, MIN, SEC) : rouge doux (#e57373 ou #b71c1c).
++
++2. Conserver la structure et l'espacement soigné de la fiche produit, en appliquant simplement cette palette rouge dynamique.
+
+# 2026-10-17 18:27:06.980974
++La couleur rouge ne s'applique pas sur la fiche produit individuelle dans multi-promo-price-for-woocommerce.php.
++
++Applique ces deux corrections strictes :
++
++1. Désactiver le cache du CSS (Cache Buster) :
++   - Dans la fonction 'wp_enqueue_style', remplace le numéro de version par 'time()' ou filemtime(__FILE__) :
++     wp_enqueue_style('mppw-style', ..., array(), time());
++   - Cela force immédiatement tous les navigateurs et caches à charger la nouvelle version rouge sans garder l'ancienne.
++
++2. Forcer le style rouge avec !important sur la fiche produit :
++   - Cible tous les sélecteurs du conteneur de la fiche produit (par exemple : .mppw-countdown-timer, .mppw-countdown-single, .single-product .mppw-countdown-timer) :
++     background-color: #fff5f5 !important;
++     border: 1px solid #ffd2d2 !important;
++   - Pour le titre et l'icône :
++     color: #d32f2f !important;
++     fill: #d32f2f !important;
++   - Pour les cases de chiffres et séparateurs :
++     border-color: #ffcccc !important;
++     color: #d32f2f !important;
