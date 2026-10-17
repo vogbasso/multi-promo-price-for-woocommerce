@@ -1,32 +1,50 @@
-.mppw-countdown-wrapper {
-	margin: 15px 0 20px;
-	padding: 12px 16px;
-	background: #fff5f5;
-	border: 1px solid #ffd2d2;
-	border-radius: 8px;
-	box-shadow: 0 1px 3px rgba(211, 47, 47, 0.06);
-	display: inline-block;
-	max-width: 100%;
-	box-sizing: border-box;
+/* ==========================================================================
+   Single Product & Default Countdown Wrapper - Strict Red Promotional Style
+   ========================================================================== */
+
+.mppw-countdown-wrapper,
+.mppw-countdown-wrapper.mppw-countdown-single,
+.single-product .mppw-countdown-wrapper,
+.single-product .mppw-countdown-timer-container,
+div.product .mppw-countdown-wrapper {
+	margin: 15px 0 20px !important;
+	padding: 12px 16px !important;
+	background: #fff5f5 !important;
+	background-color: #fff5f5 !important;
+	border: 1px solid #ffd2d2 !important;
+	border-radius: 8px !important;
+	box-shadow: 0 1px 3px rgba(211, 47, 47, 0.08) !important;
+	display: inline-block !important;
+	max-width: 100% !important;
+	box-sizing: border-box !important;
 }
 
-.mppw-countdown-header {
-	display: flex;
-	align-items: center;
-	margin-bottom: 8px;
-	font-size: 13px;
-	font-weight: 700;
-	color: #d32f2f;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	line-height: 1.2;
+.mppw-countdown-wrapper .mppw-countdown-header,
+.mppw-countdown-single .mppw-countdown-header,
+.single-product .mppw-countdown-header {
+	display: flex !important;
+	align-items: center !important;
+	margin-bottom: 8px !important;
+	font-size: 13px !important;
+	font-weight: 700 !important;
+	color: #d32f2f !important;
+	text-transform: uppercase !important;
+	letter-spacing: 0.5px !important;
+	line-height: 1.2 !important;
 }
 
-/* Strict SVG sizing rule */
+.mppw-countdown-wrapper .mppw-countdown-title,
+.mppw-countdown-single .mppw-countdown-title,
+.single-product .mppw-countdown-title {
+	color: #d32f2f !important;
+}
+
+/* Strict SVG sizing and red color rule */
 .mppw-countdown-wrapper svg,
 .mppw-countdown-header svg,
 .mppw-countdown-wrapper img,
-.mppw-countdown-header img {
+.mppw-countdown-header img,
+.single-product .mppw-countdown-header svg {
 	width: 14px !important;
 	height: 14px !important;
 	max-width: 14px !important;
@@ -34,51 +52,64 @@
 	display: inline-block !important;
 	vertical-align: middle !important;
 	margin-right: 5px !important;
-	fill: currentColor;
-	flex-shrink: 0;
+	fill: #d32f2f !important;
+	color: #d32f2f !important;
+	flex-shrink: 0 !important;
 }
 
-.mppw-countdown-timer {
-	display: flex;
-	align-items: center;
-	gap: 8px;
+.mppw-countdown-wrapper .mppw-countdown-timer,
+.mppw-countdown-single .mppw-countdown-timer,
+.single-product .mppw-countdown-timer {
+	display: flex !important;
+	align-items: center !important;
+	gap: 8px !important;
 }
 
-.mppw-countdown-item {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	min-width: 52px;
-	padding: 6px 8px;
-	background: #ffffff;
-	border: 1px solid #ffcccc;
-	border-radius: 6px;
-	box-shadow: 0 1px 2px rgba(211, 47, 47, 0.05);
+.mppw-countdown-wrapper .mppw-countdown-item,
+.mppw-countdown-single .mppw-countdown-item,
+.single-product .mppw-countdown-item {
+	display: flex !important;
+	flex-direction: column !important;
+	align-items: center !important;
+	justify-content: center !important;
+	min-width: 52px !important;
+	padding: 6px 8px !important;
+	background: #ffffff !important;
+	background-color: #ffffff !important;
+	border: 1px solid #ffcccc !important;
+	border-color: #ffcccc !important;
+	border-radius: 6px !important;
+	box-shadow: 0 1px 2px rgba(211, 47, 47, 0.05) !important;
 }
 
-.mppw-countdown-num {
-	font-size: 18px;
-	font-weight: 700;
-	line-height: 1.2;
-	color: #d32f2f;
-	font-variant-numeric: tabular-nums;
+.mppw-countdown-wrapper .mppw-countdown-num,
+.mppw-countdown-single .mppw-countdown-num,
+.single-product .mppw-countdown-num {
+	font-size: 18px !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+	color: #d32f2f !important;
+	font-variant-numeric: tabular-nums !important;
 }
 
-.mppw-countdown-label {
-	font-size: 10px;
-	font-weight: 600;
-	color: #b71c1c;
-	text-transform: uppercase;
-	margin-top: 2px;
-	letter-spacing: 0.3px;
+.mppw-countdown-wrapper .mppw-countdown-label,
+.mppw-countdown-single .mppw-countdown-label,
+.single-product .mppw-countdown-label {
+	font-size: 10px !important;
+	font-weight: 600 !important;
+	color: #b71c1c !important;
+	text-transform: uppercase !important;
+	margin-top: 2px !important;
+	letter-spacing: 0.3px !important;
 }
 
-.mppw-countdown-sep {
-	font-size: 16px;
-	font-weight: 700;
-	color: #d32f2f;
-	margin-top: -8px;
+.mppw-countdown-wrapper .mppw-countdown-sep,
+.mppw-countdown-single .mppw-countdown-sep,
+.single-product .mppw-countdown-sep {
+	font-size: 16px !important;
+	font-weight: 700 !important;
+	color: #d32f2f !important;
+	margin-top: -8px !important;
 }
 
 /* ==========================================================================
@@ -90,12 +121,13 @@
 	margin: 6px auto 8px auto !important;
 	padding: 6px 8px !important;
 	background: #fff5f5 !important;
+	background-color: #fff5f5 !important;
 	border: 1px solid #fed7d7 !important;
 	border-radius: 6px !important;
 	box-shadow: none !important;
 	box-sizing: border-box !important;
 	max-width: 100% !important;
-	text-align: center;
+	text-align: center !important;
 }
 
 .mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-header {
@@ -121,6 +153,7 @@
 	vertical-align: middle !important;
 	margin-right: 5px !important;
 	flex-shrink: 0 !important;
+	fill: #e53e3e !important;
 }
 
 .mppw-countdown-wrapper.mppw-timer-loop .mppw-countdown-timer {
@@ -168,27 +201,32 @@
 }
 
 @media (max-width: 480px) {
-	.mppw-countdown-wrapper {
-		display: block;
-		width: 100%;
-		padding: 10px 12px;
+	.mppw-countdown-wrapper,
+	.mppw-countdown-wrapper.mppw-countdown-single {
+		display: block !important;
+		width: 100% !important;
+		padding: 10px 12px !important;
 	}
 
-	.mppw-countdown-item {
-		min-width: 42px;
-		padding: 4px 6px;
+	.mppw-countdown-wrapper .mppw-countdown-item,
+	.mppw-countdown-single .mppw-countdown-item {
+		min-width: 42px !important;
+		padding: 4px 6px !important;
 	}
 
-	.mppw-countdown-num {
-		font-size: 15px;
+	.mppw-countdown-wrapper .mppw-countdown-num,
+	.mppw-countdown-single .mppw-countdown-num {
+		font-size: 15px !important;
 	}
 
-	.mppw-countdown-label {
-		font-size: 9px;
+	.mppw-countdown-wrapper .mppw-countdown-label,
+	.mppw-countdown-single .mppw-countdown-label {
+		font-size: 9px !important;
 	}
 
-	.mppw-countdown-timer {
-		gap: 4px;
+	.mppw-countdown-wrapper .mppw-countdown-timer,
+	.mppw-countdown-single .mppw-countdown-timer {
+		gap: 4px !important;
 	}
 
 	.mppw-countdown-wrapper.mppw-timer-loop {

@@ -614,7 +614,7 @@ function mppw_get_active_countdown_info( $product_or_id ) {
 			$best_info = false;
 			foreach ( $children as $child_id ) {
 				$child_info = mppw_get_active_countdown_info( $child_id );
-				if ( ! $child_info ) {
+				if ( ! child_info ) {
 					continue;
 				}
 
@@ -654,24 +654,31 @@ function mppw_product_or_children_has_active_promo( $product ) {
 /**
  * Enqueue countdown assets across all frontend pages where products/loops can appear
  * (homepage, Flatsome UX builder carousels/sliders, shop, categories, pages, etc.).
+ * Uses file modification time for strict cache-busting.
  */
 function mppw_enqueue_countdown_assets() {
 	if ( is_admin() ) {
 		return;
 	}
 
+	$css_file = MPPW_PLUGIN_DIR . 'assets/css/countdown.css';
+	$js_file  = MPPW_PLUGIN_DIR . 'assets/js/countdown.js';
+
+	$css_ver = file_exists( $css_file ) ? (string) filemtime( $css_file ) : time();
+	$js_ver  = file_exists( $js_file ) ? (string) filemtime( $js_file ) : time();
+
 	wp_enqueue_style(
 		'mppw-countdown-css',
 		MPPW_PLUGIN_URL . 'assets/css/countdown.css',
 		array(),
-		MPPW_VERSION
+		$css_ver
 	);
 
 	wp_enqueue_script(
 		'mppw-countdown-js',
 		MPPW_PLUGIN_URL . 'assets/js/countdown.js',
 		array(),
-		MPPW_VERSION,
+		$js_ver,
 		true
 	);
 }
@@ -721,7 +728,7 @@ function mppw_display_countdown_timer() {
 	$expire_val    = $is_active ? (int) $countdown_info['expire_timestamp'] : '';
 	$title_val     = $is_active ? $countdown_info['title'] : __( 'OFFRE PROMOTIONNELLE SE TERMINE DANS :', 'multi-promo-price-for-woocommerce' );
 	?>
-	<div class="mppw-countdown-wrapper" data-expire="<?php echo esc_attr( (string) $expire_val ); ?>" data-default-expire="<?php echo esc_attr( (string) $expire_val ); ?>" data-default-title="<?php echo esc_attr( $title_val ); ?>" style="<?php echo esc_attr( $wrapper_style ); ?>">
+	<div class="mppw-countdown-wrapper mppw-countdown-single" data-expire="<?php echo esc_attr( (string) $expire_val ); ?>" data-default-expire="<?php echo esc_attr( (string) $expire_val ); ?>" data-default-title="<?php echo esc_attr( $title_val ); ?>" style="<?php echo esc_attr( $wrapper_style ); ?>">
 		<div class="mppw-countdown-header">
 			<svg viewBox="0 0 24 24" style="width: 14px !important; height: 14px !important; max-width: 14px !important; max-height: 14px !important; display: inline-block !important; vertical-align: middle !important; margin-right: 5px !important;">
 				<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
