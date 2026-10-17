@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Multi Promo Price for WooCommerce
  * Description: Permet de superposer une promotion secondaire (promo flash) avec date d'expiration obligatoire par-dessus une promotion standard sans date de fin.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Vogel Sessien Paolo BASSO
  * Text Domain: multi-promo-price-for-woocommerce
  * Domain Path: /languages
@@ -10,7 +10,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MPPW_VERSION', '1.1.0' );
+define( 'MPPW_VERSION', '1.2.0' );
 define( 'MPPW_PLUGIN_FILE', __FILE__ );
 define( 'MPPW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'MPPW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -447,7 +447,113 @@ function mppw_filter_is_on_sale( $is_on_sale, $product ) {
 }
 
 /**
- * Check if the product or any of its variations has an active super promo.
+ * Retrieve end timestamp for standard WooCommerce sale if active.
+ * Ensures the expiration ends at 23:59:59 of the day if no specific time is provided.
+ *
+ * @param WC_Product $product
+ * @return int|false
+ */
+function mppw_get_standard_promo_end_timestamp( $product ) {
+	if ( ! $product instanceof WC_Product ) {
+		return false;
+	}
+
+	$sale_price = $product->get_sale_price( 'edit' );
+	if ( '' === $sale_price || null === $sale_price || false === $sale_price ) {
+		return false;
+	}
+
+	$date_to = $product->get_date_on_sale_to( 'edit' );
+	$timestamp_to = 0;
+
+	if ( $date_to instanceof WC_DateTime ) {
+		$timestamp_to = $date_to->getTimestamp();
+	} else {
+		$raw_to = get_post_meta( $product->get_id(), '_sale_price_dates_to', true );
+		if ( ! empty( $raw_to ) ) {
+			$timestamp_to = is_numeric( $raw_to ) ? (int) $raw_to : strtotime( $raw_to );
+		}
+	}
+
+	if ( empty( $timestamp_to ) ) {
+		return false;
+	}
+
+	// If the timestamp has no time component (midnight 00:00:00), adjust it to 23:59:59 of that day.
+	if ( 0 === ( $timestamp_to % 86400 ) ) {
+		$timestamp_to += 86399;
+	}
+
+	$now = current_time( 'timestamp' );
+
+	// Check start date if present
+	$date_from = $product->get_date_on_sale_from( 'edit' );
+	$timestamp_from = 0;
+	if ( $date_from instanceof WC_DateTime ) {
+		$timestamp_from = $date_from->getTimestamp();
+	} else {
+		$raw_from = get_post_meta( $product->get_id(), '_sale_price_dates_from', true );
+		if ( ! empty( $raw_from ) ) {
+			$timestamp_from = is_numeric( $raw_from ) ? (int) $raw_from : strtotime( $raw_from );
+		}
+	}
+
+	if ( ! empty( $timestamp_from ) && $now < $timestamp_from ) {
+		return false;
+	}
+
+	if ( $now > $timestamp_to ) {
+		return false;
+	}
+
+	return $timestamp_to;
+}
+
+/**
+ * Determine countdown information in cascading order:
+ * 1. Super Promo Flash
+ * 2. Standard WooCommerce Promo with end date
+ * 3. None
+ *
+ * @param WC_Product|int $product_or_id
+ * @return array|false Returns array with 'expire_timestamp' and 'title', or false.
+ */
+function mppw_get_active_countdown_info( $product_or_id ) {
+	$product = is_numeric( $product_or_id ) ? wc_get_product( $product_or_id ) : $product_or_id;
+	if ( ! $product instanceof WC_Product ) {
+		return false;
+	}
+
+	$product_id = $product->get_id();
+
+	// Case 1: Super Promo Flash active.
+	if ( mppw_is_super_promo_active( $product_id ) ) {
+		$flash_to = (int) get_post_meta( $product_id, '_mppw_dates_to', true );
+		if ( $flash_to > current_time( 'timestamp' ) ) {
+			return array(
+				'type'             => 'flash',
+				'expire_timestamp' => $flash_to,
+				'title'            => __( 'Vente Flash se termine dans :', 'multi-promo-price-for-woocommerce' ),
+			);
+		}
+	}
+
+	// Case 2: Standard WooCommerce Promo active with scheduled end date.
+	$standard_to = mppw_get_standard_promo_end_timestamp( $product );
+	if ( ! empty( $standard_to ) && $standard_to > current_time( 'timestamp' ) ) {
+		return array(
+			'type'             => 'standard',
+			'expire_timestamp' => $standard_to,
+			'title'            => __( 'Offre promotionnelle se termine dans :', 'multi-promo-price-for-woocommerce' ),
+		);
+	}
+
+	// Case 3: No promotion with end date.
+	return false;
+}
+
+/**
+ * Check if the product or any of its variations has an active countdown (flash or standard).
  *
  * @param WC_Product $product
  * @return bool
@@ -457,7 +563,7 @@ function mppw_product_or_children_has_active_promo( $product ) {
 		return false;
 	}
 
-	if ( mppw_is_super_promo_active( $product->get_id() ) ) {
+	if ( false !== mppw_get_active_countdown_info( $product ) ) {
 		return true;
 	}
 
@@ -465,7 +571,7 @@ function mppw_product_or_children_has_active_promo( $product ) {
 		$children = $product->get_children();
 		if ( ! empty( $children ) ) {
 			foreach ( $children as $child_id ) {
-				if ( mppw_is_super_promo_active( $child_id ) ) {
+				if ( false !== mppw_get_active_countdown_info( $child_id ) ) {
 					return true;
 				}
 			}
@@ -505,7 +611,7 @@ function mppw_enqueue_countdown_assets() {
 }
 
 /**
- * Pass variation flash promo expiration timestamp to frontend JavaScript.
+ * Pass variation countdown data (timestamp and title) to frontend JavaScript in cascade order.
  *
  * @param array                $variation_data
  * @param WC_Product_Variable  $product
@@ -513,11 +619,14 @@ function mppw_enqueue_countdown_assets() {
  * @return array
  */
 function mppw_add_variation_countdown_data( $variation_data, $product, $variation ) {
-	$variation_id = $variation->get_id();
-	if ( mppw_is_super_promo_active( $variation_id ) ) {
-		$variation_data['mppw_expire_timestamp'] = (int) get_post_meta( $variation_id, '_mppw_dates_to', true );
+	$countdown_info = mppw_get_active_countdown_info( $variation );
+
+	if ( false !== $countdown_info ) {
+		$variation_data['mppw_expire_timestamp'] = (int) $countdown_info['expire_timestamp'];
+		$variation_data['mppw_countdown_title']  = $countdown_info['title'];
 	} else {
 		$variation_data['mppw_expire_timestamp'] = '';
+		$variation_data['mppw_countdown_title']  = '';
 	}
 
 	return $variation_data;
@@ -533,10 +642,9 @@ function mppw_display_countdown_timer() {
 		return;
 	}
 
-	$product_id = $product->get_id();
-	$is_active  = mppw_is_super_promo_active( $product_id );
-	$date_to    = $is_active ? (int) get_post_meta( $product_id, '_mppw_dates_to', true ) : 0;
-	$is_variable = $product->is_type( 'variable' );
+	$countdown_info = mppw_get_active_countdown_info( $product );
+	$is_active      = ( false !== $countdown_info );
+	$is_variable    = $product->is_type( 'variable' );
 
 	// If not active on main product and not variable (or variable with no children promos), skip rendering.
 	if ( ! $is_active && ( ! $is_variable || ! mppw_product_or_children_has_active_promo( $product ) ) ) {
@@ -544,14 +652,15 @@ function mppw_display_countdown_timer() {
 	}
 
 	$wrapper_style = ( ! $is_active && $is_variable ) ? 'display: none;' : '';
-	$expire_val    = $is_active ? $date_to : '';
+	$expire_val    = $is_active ? $countdown_info['expire_timestamp'] : '';
+	$title_val     = $is_active ? $countdown_info['title'] : __( 'Offre Flash se termine dans :', 'multi-promo-price-for-woocommerce' );
 	?>
-	<div class="mppw-countdown-wrapper" data-expire="<?php echo esc_attr( $expire_val ); ?>" data-default-expire="<?php echo esc_attr( $expire_val ); ?>" style="<?php echo esc_attr( $wrapper_style ); ?>">
+	<div class="mppw-countdown-wrapper" data-expire="<?php echo esc_attr( $expire_val ); ?>" data-default-expire="<?php echo esc_attr( $expire_val ); ?>" data-default-title="<?php echo esc_attr( $title_val ); ?>" style="<?php echo esc_attr( $wrapper_style ); ?>">
 		<div class="mppw-countdown-header">
 			<svg viewBox="0 0 24 24">
 				<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
 			</svg>
-			<span><?php esc_html_e( 'Offre Flash se termine dans :', 'multi-promo-price-for-woocommerce' ); ?></span>
+			<span class="mppw-countdown-title"><?php echo esc_html( $title_val ); ?></span>
 		</div>
 		<div class="mppw-countdown-timer">
 			<div class="mppw-countdown-item">

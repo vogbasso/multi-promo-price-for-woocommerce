@@ -9,6 +9,19 @@
 	}
 
 	/**
+	 * Updates the timer header label.
+	 */
+	function updateTimerTitle(wrapper, title) {
+		if (!wrapper) {
+			return;
+		}
+		var titleEl = wrapper.querySelector('.mppw-countdown-title');
+		if (titleEl && title) {
+			titleEl.textContent = title;
+		}
+	}
+
+	/**
 	 * Initializes timer element.
 	 */
 	function initTimer(wrapper) {
@@ -21,14 +34,18 @@
 		var minsEl = wrapper.querySelector('[data-unit="mins"]');
 		var secsEl = wrapper.querySelector('[data-unit="secs"]');
 
-		var intervalId = null;
+		if (wrapper._mppwIntervalId) {
+			clearInterval(wrapper._mppwIntervalId);
+			wrapper._mppwIntervalId = null;
+		}
 
 		function update() {
 			var expireTimestamp = parseInt(wrapper.getAttribute('data-expire'), 10);
 			if (!expireTimestamp || isNaN(expireTimestamp)) {
 				wrapper.style.display = 'none';
-				if (intervalId) {
-					clearInterval(intervalId);
+				if (wrapper._mppwIntervalId) {
+					clearInterval(wrapper._mppwIntervalId);
+					wrapper._mppwIntervalId = null;
 				}
 				return;
 			}
@@ -39,10 +56,11 @@
 
 			if (diff <= 0) {
 				wrapper.style.display = 'none';
-				if (intervalId) {
-					clearInterval(intervalId);
+				if (wrapper._mppwIntervalId) {
+					clearInterval(wrapper._mppwIntervalId);
+					wrapper._mppwIntervalId = null;
 				}
-				// Reload the page smoothly when promotion expires
+				// Reload page when promotion reaches zero
 				setTimeout(function () {
 					window.location.reload();
 				}, 1000);
@@ -63,8 +81,7 @@
 		}
 
 		update();
-		intervalId = setInterval(update, 1000);
-		wrapper._mppwIntervalId = intervalId;
+		wrapper._mppwIntervalId = setInterval(update, 1000);
 	}
 
 	/**
@@ -83,20 +100,37 @@
 		jQuery(form).on('found_variation', function (event, variation) {
 			if (variation && variation.mppw_expire_timestamp) {
 				wrapper.setAttribute('data-expire', variation.mppw_expire_timestamp);
+				if (variation.mppw_countdown_title) {
+					updateTimerTitle(wrapper, variation.mppw_countdown_title);
+				}
 				initTimer(wrapper);
 			} else {
 				wrapper.setAttribute('data-expire', '');
 				wrapper.style.display = 'none';
+				if (wrapper._mppwIntervalId) {
+					clearInterval(wrapper._mppwIntervalId);
+					wrapper._mppwIntervalId = null;
+				}
 			}
 		});
 
 		jQuery(form).on('reset_data', function () {
 			var defaultExpire = wrapper.getAttribute('data-default-expire') || '';
+			var defaultTitle  = wrapper.getAttribute('data-default-title') || '';
+
 			wrapper.setAttribute('data-expire', defaultExpire);
+			if (defaultTitle) {
+				updateTimerTitle(wrapper, defaultTitle);
+			}
+
 			if (defaultExpire) {
 				initTimer(wrapper);
 			} else {
 				wrapper.style.display = 'none';
+				if (wrapper._mppwIntervalId) {
+					clearInterval(wrapper._mppwIntervalId);
+					wrapper._mppwIntervalId = null;
+				}
 			}
 		});
 	}
