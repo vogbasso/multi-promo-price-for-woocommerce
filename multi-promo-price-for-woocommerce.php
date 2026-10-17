@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Multi Promo Price for WooCommerce
  * Description: Permet de superposer une promotion secondaire (promo flash) avec date d'expiration obligatoire par-dessus une promotion standard sans date de fin.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Vogel Sessien Paolo BASSO
  * Text Domain: multi-promo-price-for-woocommerce
  * Domain Path: /languages
@@ -10,9 +10,10 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MPPW_VERSION', '1.0.0' );
+define( 'MPPW_VERSION', '1.1.0' );
 define( 'MPPW_PLUGIN_FILE', __FILE__ );
 define( 'MPPW_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+define( 'MPPW_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
 /**
  * Check if WooCommerce is active.
@@ -56,6 +57,11 @@ function mppw_init() {
 
 	// On sale check.
 	add_filter( 'woocommerce_product_is_on_sale', 'mppw_filter_is_on_sale', 20, 2 );
+
+	// Frontend countdown timer enqueue & display.
+	add_action( 'wp_enqueue_scripts', 'mppw_enqueue_countdown_assets' );
+	add_action( 'woocommerce_single_product_summary', 'mppw_display_countdown_timer', 15 );
+	add_filter( 'woocommerce_available_variation', 'mppw_add_variation_countdown_data', 10, 3 );
 }
 add_action( 'plugins_loaded', 'mppw_init' );
 
@@ -438,4 +444,136 @@ function mppw_filter_is_on_sale( $is_on_sale, $product ) {
 	}
 
 	return $is_on_sale;
+}
+
+/**
+ * Check if the product or any of its variations has an active super promo.
+ *
+ * @param WC_Product $product
+ * @return bool
+ */
+function mppw_product_or_children_has_active_promo( $product ) {
+	if ( ! $product instanceof WC_Product ) {
+		return false;
+	}
+
+	if ( mppw_is_super_promo_active( $product->get_id() ) ) {
+		return true;
+	}
+
+	if ( $product->is_type( 'variable' ) ) {
+		$children = $product->get_children();
+		if ( ! empty( $children ) ) {
+			foreach ( $children as $child_id ) {
+				if ( mppw_is_super_promo_active( $child_id ) ) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Enqueue countdown assets only on single product pages when active.
+ */
+function mppw_enqueue_countdown_assets() {
+	if ( ! is_product() ) {
+		return;
+	}
+
+	$product = wc_get_product( get_the_ID() );
+	if ( ! $product || ! mppw_product_or_children_has_active_promo( $product ) ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'mppw-countdown-css',
+		MPPW_PLUGIN_URL . 'assets/css/countdown.css',
+		array(),
+		MPPW_VERSION
+	);
+
+	wp_enqueue_script(
+		'mppw-countdown-js',
+		MPPW_PLUGIN_URL . 'assets/js/countdown.js',
+		array(),
+		MPPW_VERSION,
+		true
+	);
+}
+
+/**
+ * Pass variation flash promo expiration timestamp to frontend JavaScript.
+ *
+ * @param array                $variation_data
+ * @param WC_Product_Variable  $product
+ * @param WC_Product_Variation $variation
+ * @return array
+ */
+function mppw_add_variation_countdown_data( $variation_data, $product, $variation ) {
+	$variation_id = $variation->get_id();
+	if ( mppw_is_super_promo_active( $variation_id ) ) {
+		$variation_data['mppw_expire_timestamp'] = (int) get_post_meta( $variation_id, '_mppw_dates_to', true );
+	} else {
+		$variation_data['mppw_expire_timestamp'] = '';
+	}
+
+	return $variation_data;
+}
+
+/**
+ * Render the countdown timer on single product pages.
+ */
+function mppw_display_countdown_timer() {
+	global $product;
+
+	if ( ! $product instanceof WC_Product ) {
+		return;
+	}
+
+	$product_id = $product->get_id();
+	$is_active  = mppw_is_super_promo_active( $product_id );
+	$date_to    = $is_active ? (int) get_post_meta( $product_id, '_mppw_dates_to', true ) : 0;
+	$is_variable = $product->is_type( 'variable' );
+
+	// If not active on main product and not variable (or variable with no children promos), skip rendering.
+	if ( ! $is_active && ( ! $is_variable || ! mppw_product_or_children_has_active_promo( $product ) ) ) {
+		return;
+	}
+
+	$wrapper_style = ( ! $is_active && $is_variable ) ? 'display: none;' : '';
+	$expire_val    = $is_active ? $date_to : '';
+	?>
+	<div class="mppw-countdown-wrapper" data-expire="<?php echo esc_attr( $expire_val ); ?>" data-default-expire="<?php echo esc_attr( $expire_val ); ?>" style="<?php echo esc_attr( $wrapper_style ); ?>">
+		<div class="mppw-countdown-header">
+			<svg viewBox="0 0 24 24">
+				<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
+			</svg>
+			<span><?php esc_html_e( 'Offre Flash se termine dans :', 'multi-promo-price-for-woocommerce' ); ?></span>
+		</div>
+		<div class="mppw-countdown-timer">
+			<div class="mppw-countdown-item">
+				<span class="mppw-countdown-num" data-unit="days">00</span>
+				<span class="mppw-countdown-label"><?php esc_html_e( 'Jours', 'multi-promo-price-for-woocommerce' ); ?></span>
+			</div>
+			<span class="mppw-countdown-sep">:</span>
+			<div class="mppw-countdown-item">
+				<span class="mppw-countdown-num" data-unit="hours">00</span>
+				<span class="mppw-countdown-label"><?php esc_html_e( 'Heures', 'multi-promo-price-for-woocommerce' ); ?></span>
+			</div>
+			<span class="mppw-countdown-sep">:</span>
+			<div class="mppw-countdown-item">
+				<span class="mppw-countdown-num" data-unit="mins">00</span>
+				<span class="mppw-countdown-label"><?php esc_html_e( 'Min', 'multi-promo-price-for-woocommerce' ); ?></span>
+			</div>
+			<span class="mppw-countdown-sep">:</span>
+			<div class="mppw-countdown-item">
+				<span class="mppw-countdown-num" data-unit="secs">00</span>
+				<span class="mppw-countdown-label"><?php esc_html_e( 'Sec', 'multi-promo-price-for-woocommerce' ); ?></span>
+			</div>
+		</div>
+	</div>
+	<?php
 }
