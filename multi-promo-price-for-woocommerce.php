@@ -593,6 +593,7 @@ function mppw_get_active_countdown_info( $product_or_id ) {
 				'type'             => 'flash',
 				'expire_timestamp' => $flash_to,
 				'title'            => __( 'Vente Flash se termine dans :', 'multi-promo-price-for-woocommerce' ),
+				'short_title'      => __( 'Fin dans :', 'multi-promo-price-for-woocommerce' ),
 			);
 		}
 	}
@@ -604,6 +605,7 @@ function mppw_get_active_countdown_info( $product_or_id ) {
 			'type'             => 'standard',
 			'expire_timestamp' => $standard_to,
 			'title'            => __( 'Offre promotionnelle se termine dans :', 'multi-promo-price-for-woocommerce' ),
+			'short_title'      => __( 'Fin dans :', 'multi-promo-price-for-woocommerce' ),
 		);
 	}
 
@@ -652,19 +654,12 @@ function mppw_product_or_children_has_active_promo( $product ) {
 }
 
 /**
- * Enqueue countdown assets on WooCommerce pages (single product, shop, categories, search).
+ * Enqueue countdown assets across all frontend pages where products/loops can appear
+ * (homepage, Flatsome UX builder carousels/sliders, shop, categories, pages, etc.).
  */
 function mppw_enqueue_countdown_assets() {
-	if ( ! is_woocommerce() && ! is_product() && ! is_shop() && ! is_product_taxonomy() ) {
+	if ( is_admin() ) {
 		return;
-	}
-
-	// On single product, only enqueue if product has an active promo.
-	if ( is_product() ) {
-		$product = wc_get_product( get_the_ID() );
-		if ( ! $product || ! mppw_product_or_children_has_active_promo( $product ) ) {
-			return;
-		}
 	}
 
 	wp_enqueue_style(
@@ -761,7 +756,7 @@ function mppw_display_countdown_timer() {
 }
 
 /**
- * Render compact countdown timer on product cards in shop loops (categories, shop, search).
+ * Render compact countdown timer on product cards in shop loops (categories, shop, search, homepage sliders).
  */
 function mppw_display_loop_countdown_timer() {
 	global $product;
@@ -775,37 +770,25 @@ function mppw_display_loop_countdown_timer() {
 		return;
 	}
 
-	$expire_val = (int) $countdown_info['expire_timestamp'];
-	$title_val  = $countdown_info['title'];
+	$expire_val  = (int) $countdown_info['expire_timestamp'];
+	$short_title = ! empty( $countdown_info['short_title'] ) ? $countdown_info['short_title'] : __( 'Fin dans :', 'multi-promo-price-for-woocommerce' );
 	?>
 	<div class="mppw-countdown-wrapper mppw-timer-loop" data-expire="<?php echo esc_attr( (string) $expire_val ); ?>">
-		<div class="mppw-countdown-header">
-			<svg viewBox="0 0 24 24">
+		<span class="mppw-loop-badge-content">
+			<svg viewBox="0 0 24 24" class="mppw-loop-icon">
 				<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
 			</svg>
-			<span class="mppw-countdown-title"><?php echo esc_html( $title_val ); ?></span>
-		</div>
-		<div class="mppw-countdown-timer">
-			<div class="mppw-countdown-item">
-				<span class="mppw-countdown-num" data-unit="days">00</span>
-				<span class="mppw-countdown-label"><?php esc_html_e( 'J', 'multi-promo-price-for-woocommerce' ); ?></span>
-			</div>
-			<span class="mppw-countdown-sep">:</span>
-			<div class="mppw-countdown-item">
-				<span class="mppw-countdown-num" data-unit="hours">00</span>
-				<span class="mppw-countdown-label"><?php esc_html_e( 'H', 'multi-promo-price-for-woocommerce' ); ?></span>
-			</div>
-			<span class="mppw-countdown-sep">:</span>
-			<div class="mppw-countdown-item">
-				<span class="mppw-countdown-num" data-unit="mins">00</span>
-				<span class="mppw-countdown-label"><?php esc_html_e( 'M', 'multi-promo-price-for-woocommerce' ); ?></span>
-			</div>
-			<span class="mppw-countdown-sep">:</span>
-			<div class="mppw-countdown-item">
-				<span class="mppw-countdown-num" data-unit="secs">00</span>
-				<span class="mppw-countdown-label"><?php esc_html_e( 'S', 'multi-promo-price-for-woocommerce' ); ?></span>
-			</div>
-		</div>
+			<span class="mppw-countdown-title"><?php echo esc_html( $short_title ); ?></span>
+			<span class="mppw-countdown-timer">
+				<span class="mppw-countdown-item"><span class="mppw-countdown-num" data-unit="days">00</span><span class="mppw-countdown-label"><?php esc_html_e( 'j', 'multi-promo-price-for-woocommerce' ); ?></span></span>
+				<span class="mppw-countdown-sep">:</span>
+				<span class="mppw-countdown-item"><span class="mppw-countdown-num" data-unit="hours">00</span><span class="mppw-countdown-label"><?php esc_html_e( 'h', 'multi-promo-price-for-woocommerce' ); ?></span></span>
+				<span class="mppw-countdown-sep">:</span>
+				<span class="mppw-countdown-item"><span class="mppw-countdown-num" data-unit="mins">00</span><span class="mppw-countdown-label"><?php esc_html_e( 'm', 'multi-promo-price-for-woocommerce' ); ?></span></span>
+				<span class="mppw-countdown-sep">:</span>
+				<span class="mppw-countdown-item"><span class="mppw-countdown-num" data-unit="secs">00</span><span class="mppw-countdown-label"><?php esc_html_e( 's', 'multi-promo-price-for-woocommerce' ); ?></span></span>
+			</span>
+		</span>
 	</div>
 	<?php
 }
