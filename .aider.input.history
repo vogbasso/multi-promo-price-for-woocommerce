@@ -1,0 +1,135 @@
+
+# 2026-10-17 13:59:41.216497
++n
+
+# 2026-10-17 14:00:10.921297
++Crée le fichier principal du plugin nommé "multi-promo-price-for-woocommerce.php".
++
++Spécifications :
++1. En-tête :
++   - Plugin Name: Multi Promo Price for WooCommerce
++   - Description: Permet d'ajouter une promotion secondaire (promo flash) avec date d'expiration obligatoire par-dessus une promotion permanente dans WooCommerce.
++   - Version: 1.0.0
++   - Author: Vogel Sessien Paolo BASSO
++   - Text Domain: multi-promo-price-for-woocommerce
++
++2. Administration (Produits simples et variations) :
++   - Ajouter sous le champ "Prix promo" natif de WooCommerce les champs :
++     * "Prix super promo (Flash)" (meta: _mppw_sale_price)
++     * "Date de début super promo" (meta: _mppw_sale_price_dates_from)
++     * "Date de fin super promo" (meta: _mppw_sale_price_dates_to)
++   - Validation stricte : si "_mppw_sale_price" est renseigné, la date de fin est obligatoire.
++
++3. Logique Front-end & Panier :
++   - Filtrer les prix via les filtres WooCommerce (woocommerce_product_get_price, woocommerce_product_get_sale_price, variations, etc.).
++   - Si la date courante est comprise entre les dates de la super promo : appliquer le prix flash.
++   - Si la date de fin est dépassée : revenir automatiquement au prix promo natif de WooCommerce (s'il existe, même sans date de fin), ou au prix régulier.
++   - Gérer le hook is_on_sale.
++
++4. Normes :
++   - Sécuriser avec nonces et vérification des capacités.
++   - Préfixer avec mppw_ / MPPW_.
+
+# 2026-10-17 14:02:35.331494
++y
+
+# 2026-10-17 14:02:47.064427
++!ls
+
+# 2026-10-17 14:02:53.888017
++n
+
+# 2026-10-17 14:03:49.440453
++!ls /var/www/html/
+
+# 2026-10-17 14:05:46.574687
++n
+
+# 2026-10-17 14:05:49.919064
++Crée le fichier multi-promo-price-for-woocommerce.php avec le code complet du plugin WordPress/WooCommerce.
++
++Spécifications techniques :
++
++1. En-tête :
++   - Plugin Name: Multi Promo Price for WooCommerce
++   - Description: Permet de superposer une promotion secondaire (promo flash) avec date d'expiration obligatoire par-dessus une promotion standard sans date de fin.
++   - Version: 1.0.0
++   - Author: Vogel Sessien Paolo BASSO
++   - Text Domain: multi-promo-price-for-woocommerce
++
++2. Sécurité :
++   - Empêcher l'accès direct (defined('ABSPATH') || exit;).
++   - Vérifier si WooCommerce est actif avant d'initialiser le plugin.
++   - Nonces et vérification des permissions (current_user_can('edit_post')) à l'enregistrement.
++
++3. Interface d'administration :
++   - Ajouter dans l'onglet Général (pour les produits simples via `woocommerce_product_options_pricing`) et dans les variations (via `woocommerce_variation_options_pricing`) :
++     * "Prix promo secondaire / Flash" (_mppw_sale_price)
++     * "Date début promo secondaire" (_mppw_dates_from) avec la classe datepicker de WC.
++     * "Date fin promo secondaire (Obligatoire si prix renseigné)" (_mppw_dates_to) avec la classe datepicker de WC.
++   - Sauvegarde (via `woocommerce_process_product_meta` et `woocommerce_save_product_variation`) :
++     * Si _mppw_sale_price est renseigné mais sans date de fin, ne pas enregistrer le prix promo secondaire et afficher une notice d'erreur admin.
++
++4. Logique de calcul des prix (Hooks WooCommerce) :
++   - Filtrer les prix avec :
++     * `woocommerce_product_get_price`
++     * `woocommerce_product_get_sale_price`
++     * `woocommerce_product_variation_get_price`
++     * `woocommerce_product_variation_get_sale_price`
++     * `woocommerce_variation_prices_price`
++     * `woocommerce_variation_prices_sale_price`
++   - Logique temporelle :
++     * Si la date actuelle est >= date début (00:00:00) et <= date fin (23:59:59) ET que le prix secondaire est valide : renvoyer le prix promo secondaire.
++     * Sinon : laisser le comportement WooCommerce standard opérer (retour automatique au prix promo natif sans date de fin s'il existe, sinon au prix régulier).
++   - Gérer le hook `woocommerce_product_is_on_sale`.
++   - Vider le cache des variations (clear_transients) lors de la mise à jour des métas.
+
+# 2026-10-17 14:08:26.774016
++/quit
+
+# 2026-10-17 14:11:29.349949
++n
+
+# 2026-10-17 14:11:38.446867
++/add multi-promo-price-for-woocommerce.php
+
+# 2026-10-17 14:11:50.221789
++/add README.md
+
+# 2026-10-17 14:24:13.682005
++Ajoute un compte à rebours (Sale Countdown Timer) directement dans le plugin Multi Promo Price for WooCommerce.
++
++Voici les exigences pour cette fonctionnalité :
++
++1. Emplacement d'affichage :
++   - Afficher le compte à rebours sur la page produit individuel (hook : woocommerce_single_product_summary), idéalement juste après le prix ou avant le bouton "Ajouter au panier".
++   - Condition d'affichage : Le compte à rebours ne doit s'afficher QUE si le produit a une super promo active (_mppw_sale_price) et qu'il reste du temps avant la date de fin (_mppw_dates_to).
++
++2. Précision de la date de fin :
++   - Par défaut, considérer la fin de la promo à 23:59:59 du jour renseigné (ou permettre de cibler le timestamp exact de fin).
++
++3. Code Front-End (Léger & Moderne) :
++   - Écrire un script en JavaScript pur (Vanilla JS, sans dépendance externe lourde).
++   - Calculer dynamiquement le temps restant : Jours, Heures, Minutes, Secondes.
++   - En CSS : concevoir un design épuré, moderne et responsive (ex : des petits blocs élégants avec le nombre et en dessous le libellé "Jours", "Heures", "Min", "Sec").
++   - Quand le compte à rebours atteint zéro : masquer le timer et recharger discrètement la zone de prix ou la page.
++
++4. Enregistrement des assets :
++   - Charger le script et le CSS uniquement sur les pages produits WooCommerce concernées (pour optimiser les performances de production).
+
+# 2026-10-17 14:25:24.681230
++y
+
+# 2026-10-17 14:30:28.368629
++Modifie la logique du compte à rebours (Sale Countdown Timer) pour qu'il fonctionne en cascade :
++
++1. Hiérarchie de détection :
++   - CAS 1 : Si la "Super Promo Flash" (_mppw_sale_price) est active avec sa date de fin, afficher le compte à rebours ciblant cette date (ex. Titre : "Vente Flash se termine dans :").
++   - CAS 2 (NOUVEAU) : Si la Super Promo Flash n'est pas active (ou expirée), mais que la promotion standard de WooCommerce est active et possède une date de fin (via $product->get_date_on_sale_to() ou le meta '_sale_price_dates_to'), afficher automatiquement le compte à rebours ciblant cette date de fin standard (ex. Titre : "Offre promotionnelle se termine dans :").
++   - CAS 3 : Si aucune promotion n'a de date de fin programmée, ne rien afficher.
++
++2. Prise en compte de la fin de journée :
++   - Si la date de fin standard de WooCommerce est enregistrée comme une date sans heure précise, considérer 23:59:59 comme heure d'expiration par défaut.
++
++3. Compatibilité :
++   - Assurer le bon fonctionnement sur les produits simples et les variations.
