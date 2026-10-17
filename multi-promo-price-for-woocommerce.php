@@ -80,17 +80,23 @@ function mppw_missing_wc_notice() {
  * Display queued admin notices.
  */
 function mppw_display_admin_notices() {
-	$notices = get_transient( 'mppw_admin_notices_' . get_current_user_id() );
+	$user_id = get_current_user_id();
+	if ( ! $user_id ) {
+		return;
+	}
+
+	$notices = get_transient( 'mppw_admin_notices_' . $user_id );
 	if ( ! empty( $notices ) && is_array( $notices ) ) {
 		foreach ( $notices as $notice ) {
-			$class = ! empty( $notice['type'] ) ? $notice['type'] : 'error';
+			$raw_class = ! empty( $notice['type'] ) ? $notice['type'] : 'error';
+			$class     = sanitize_html_class( $raw_class );
 			?>
 			<div class="notice notice-<?php echo esc_attr( $class ); ?> is-dismissible">
 				<p><?php echo esc_html( $notice['message'] ); ?></p>
 			</div>
 			<?php
 		}
-		delete_transient( 'mppw_admin_notices_' . get_current_user_id() );
+		delete_transient( 'mppw_admin_notices_' . $user_id );
 	}
 }
 
@@ -102,13 +108,17 @@ function mppw_display_admin_notices() {
  */
 function mppw_add_admin_notice( $message, $type = 'error' ) {
 	$user_id = get_current_user_id();
+	if ( ! $user_id ) {
+		return;
+	}
+
 	$notices = get_transient( 'mppw_admin_notices_' . $user_id );
 	if ( ! is_array( $notices ) ) {
 		$notices = array();
 	}
 	$notices[] = array(
 		'message' => $message,
-		'type'    => $type,
+		'type'    => sanitize_key( $type ),
 	);
 	set_transient( 'mppw_admin_notices_' . $user_id, $notices, 60 );
 }
@@ -125,15 +135,19 @@ function mppw_add_simple_product_pricing_fields() {
 	$date_from  = get_post_meta( $post->ID, '_mppw_dates_from', true );
 	$date_to    = get_post_meta( $post->ID, '_mppw_dates_to', true );
 
-	$formatted_date_from = ! empty( $date_from ) ? date_i18n( 'Y-m-d', $date_from ) : '';
-	$formatted_date_to   = ! empty( $date_to ) ? date_i18n( 'Y-m-d', $date_to ) : '';
+	$formatted_date_from = ! empty( $date_from ) ? date_i18n( 'Y-m-d', (int) $date_from ) : '';
+	$formatted_date_to   = ! empty( $date_to ) ? date_i18n( 'Y-m-d', (int) $date_to ) : '';
 
 	echo '<div class="options_group mppw_pricing_group">';
 
 	woocommerce_wp_text_input(
 		array(
 			'id'          => '_mppw_sale_price',
-			'label'       => __( 'Prix promo secondaire / Flash (' . get_woocommerce_currency_symbol() . ')', 'multi-promo-price-for-woocommerce' ),
+			'label'       => sprintf(
+				/* translators: %s: Currency symbol */
+				__( 'Prix promo secondaire / Flash (%s)', 'multi-promo-price-for-woocommerce' ),
+				get_woocommerce_currency_symbol()
+			),
 			'placeholder' => '',
 			'data_type'   => 'price',
 			'value'       => $sale_price,
@@ -179,7 +193,7 @@ function mppw_save_simple_product_pricing_fields( $post_id ) {
 		return;
 	}
 
-	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+	if ( ! current_user_can( 'edit_product', $post_id ) ) {
 		return;
 	}
 
@@ -207,12 +221,12 @@ function mppw_add_variation_pricing_fields( $loop, $variation_data, $variation )
 	$date_from  = get_post_meta( $variation_id, '_mppw_dates_from', true );
 	$date_to    = get_post_meta( $variation_id, '_mppw_dates_to', true );
 
-	$formatted_date_from = ! empty( $date_from ) ? date_i18n( 'Y-m-d', $date_from ) : '';
-	$formatted_date_to   = ! empty( $date_to ) ? date_i18n( 'Y-m-d', $date_to ) : '';
+	$formatted_date_from = ! empty( $date_from ) ? date_i18n( 'Y-m-d', (int) $date_from ) : '';
+	$formatted_date_to   = ! empty( $date_to ) ? date_i18n( 'Y-m-d', (int) $date_to ) : '';
 	?>
 	<div class="mppw_variation_pricing_group form-row form-row-full">
 		<p class="form-row form-row-first">
-			<label><?php echo esc_html__( 'Prix promo secondaire / Flash (' . get_woocommerce_currency_symbol() . ')', 'multi-promo-price-for-woocommerce' ); ?></label>
+			<label><?php echo esc_html( sprintf( __( 'Prix promo secondaire / Flash (%s)', 'multi-promo-price-for-woocommerce' ), get_woocommerce_currency_symbol() ) ); ?></label>
 			<input type="text" size="5" class="wc_input_price" name="_mppw_variable_sale_price[<?php echo esc_attr( $loop ); ?>]" value="<?php echo esc_attr( $sale_price ); ?>" />
 		</p>
 		<p class="form-row form-row-last">
@@ -228,13 +242,39 @@ function mppw_add_variation_pricing_fields( $loop, $variation_data, $variation )
 }
 
 /**
+ * Verify nonce for saving variation pricing fields.
+ * Handles both standard WC meta box save and WC AJAX variation save.
+ *
+ * @return bool
+ */
+function mppw_verify_variation_save_nonce() {
+	if ( isset( $_POST['security'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['security'] ) ), 'save-variations' ) ) {
+		return true;
+	}
+
+	if ( isset( $_POST['woocommerce_meta_nonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['woocommerce_meta_nonce'] ) ), 'woocommerce_save_data' ) ) {
+		return true;
+	}
+
+	if ( isset( $_POST['mppw_pricing_nonce'] ) && wp_verify_nonce( sanitize_key( wp_unslash( $_POST['mppw_pricing_nonce'] ) ), 'mppw_save_pricing_meta' ) ) {
+		return true;
+	}
+
+	return false;
+}
+
+/**
  * Save flash promo fields for variation products.
  *
  * @param int $variation_id
  * @param int $i
  */
 function mppw_save_variation_pricing_fields( $variation_id, $i ) {
-	if ( ! current_user_can( 'edit_post', $variation_id ) ) {
+	if ( ! mppw_verify_variation_save_nonce() ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_product', $variation_id ) ) {
 		return;
 	}
 
@@ -252,6 +292,19 @@ function mppw_save_variation_pricing_fields( $variation_id, $i ) {
 }
 
 /**
+ * Validate YYYY-MM-DD date string.
+ *
+ * @param string $date
+ * @return bool
+ */
+function mppw_is_valid_date_format( $date ) {
+	if ( ! is_string( $date ) || ! preg_match( '/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/', $date ) ) {
+		return false;
+	}
+	return true;
+}
+
+/**
  * Process validation and save metadata for product or variation.
  *
  * @param int    $object_id
@@ -265,17 +318,17 @@ function mppw_process_and_save_meta( $object_id, $price_raw, $from_raw, $to_raw,
 
 	if ( '' !== $clean_price ) {
 		// Strict validation: End date is required if secondary sale price is set.
-		if ( empty( $to_raw ) ) {
+		if ( empty( $to_raw ) || ! mppw_is_valid_date_format( $to_raw ) ) {
 			mppw_add_admin_notice(
 				sprintf(
 					/* translators: %s: product title */
-					__( 'Erreur pour "%s" : La date de fin est obligatoire si le prix promo secondaire est renseigné. Le prix n\'a pas été enregistré.', 'multi-promo-price-for-woocommerce' ),
+					__( 'Erreur pour "%s" : La date de fin est obligatoire (format YYYY-MM-DD) si le prix promo secondaire est renseigné. Le prix n\'a pas été enregistré.', 'multi-promo-price-for-woocommerce' ),
 					$label ? $label : '#' . $object_id
 				),
 				'error'
 			);
 
-			// Do not save secondary promo price if end date is missing.
+			// Do not save secondary promo price if end date is missing or invalid.
 			delete_post_meta( $object_id, '_mppw_sale_price' );
 			delete_post_meta( $object_id, '_mppw_dates_from' );
 			delete_post_meta( $object_id, '_mppw_dates_to' );
@@ -286,7 +339,7 @@ function mppw_process_and_save_meta( $object_id, $price_raw, $from_raw, $to_raw,
 		update_post_meta( $object_id, '_mppw_sale_price', $clean_price );
 		update_post_meta( $object_id, '_mppw_dates_to', $timestamp_to );
 
-		if ( ! empty( $from_raw ) ) {
+		if ( ! empty( $from_raw ) && mppw_is_valid_date_format( $from_raw ) ) {
 			$timestamp_from = strtotime( $from_raw . ' 00:00:00' );
 			update_post_meta( $object_id, '_mppw_dates_from', $timestamp_from );
 		} else {
@@ -306,6 +359,11 @@ function mppw_process_and_save_meta( $object_id, $price_raw, $from_raw, $to_raw,
  * @return bool
  */
 function mppw_is_super_promo_active( $product_id ) {
+	$product_id = absint( $product_id );
+	if ( ! $product_id ) {
+		return false;
+	}
+
 	$sale_price = get_post_meta( $product_id, '_mppw_sale_price', true );
 	if ( '' === $sale_price || null === $sale_price || false === $sale_price ) {
 		return false;
@@ -340,7 +398,7 @@ function mppw_is_super_promo_active( $product_id ) {
  */
 function mppw_get_active_super_promo_price( $product_id ) {
 	if ( mppw_is_super_promo_active( $product_id ) ) {
-		return get_post_meta( $product_id, '_mppw_sale_price', true );
+		return get_post_meta( absint( $product_id ), '_mppw_sale_price', true );
 	}
 	return false;
 }
@@ -486,7 +544,7 @@ function mppw_get_standard_promo_end_timestamp( $product ) {
 
 	$now = current_time( 'timestamp' );
 
-	// Check start date if present
+	// Check start date if present.
 	$date_from = $product->get_date_on_sale_from( 'edit' );
 	$timestamp_from = 0;
 	if ( $date_from instanceof WC_DateTime ) {
@@ -623,7 +681,7 @@ function mppw_add_variation_countdown_data( $variation_data, $product, $variatio
 
 	if ( false !== $countdown_info ) {
 		$variation_data['mppw_expire_timestamp'] = (int) $countdown_info['expire_timestamp'];
-		$variation_data['mppw_countdown_title']  = $countdown_info['title'];
+		$variation_data['mppw_countdown_title']  = sanitize_text_field( $countdown_info['title'] );
 	} else {
 		$variation_data['mppw_expire_timestamp'] = '';
 		$variation_data['mppw_countdown_title']  = '';
@@ -652,10 +710,10 @@ function mppw_display_countdown_timer() {
 	}
 
 	$wrapper_style = ( ! $is_active && $is_variable ) ? 'display: none;' : '';
-	$expire_val    = $is_active ? $countdown_info['expire_timestamp'] : '';
+	$expire_val    = $is_active ? (int) $countdown_info['expire_timestamp'] : '';
 	$title_val     = $is_active ? $countdown_info['title'] : __( 'Offre Flash se termine dans :', 'multi-promo-price-for-woocommerce' );
 	?>
-	<div class="mppw-countdown-wrapper" data-expire="<?php echo esc_attr( $expire_val ); ?>" data-default-expire="<?php echo esc_attr( $expire_val ); ?>" data-default-title="<?php echo esc_attr( $title_val ); ?>" style="<?php echo esc_attr( $wrapper_style ); ?>">
+	<div class="mppw-countdown-wrapper" data-expire="<?php echo esc_attr( (string) $expire_val ); ?>" data-default-expire="<?php echo esc_attr( (string) $expire_val ); ?>" data-default-title="<?php echo esc_attr( $title_val ); ?>" style="<?php echo esc_attr( $wrapper_style ); ?>">
 		<div class="mppw-countdown-header">
 			<svg viewBox="0 0 24 24">
 				<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/>
